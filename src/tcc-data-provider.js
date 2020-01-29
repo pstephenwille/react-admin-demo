@@ -77,11 +77,12 @@ const getNestedProperty = (item, keyString) => {
 
     return getNestedProperty(item[keysArray.shift()], keysArray.join('.'));
 };
+
 const applyAllFilters = (list, filters) => {
     if (!filters.length) return list;
 
     let [key, val] = filters.shift();
-
+console.log(' key-val: ', key, val);
     let filteredList = list.filter(item => {
         let pattern = new RegExp(val.toLocaleString(), 'ig');
         let toMatch = getNestedProperty(item, key.toLocaleLowerCase());
@@ -92,8 +93,7 @@ const applyAllFilters = (list, filters) => {
     return applyAllFilters(filteredList, filters);
 };
 
-const processDataForReactAdminCompatibility = (overrides, serverData) => {
-
+const processDataForAdmin = (overrides, serverData) => {
     let filteredData = applyAllFilters(serverData, Object.entries(queryParams.filters));
 
     sortDataByField(filteredData);
@@ -101,6 +101,10 @@ const processDataForReactAdminCompatibility = (overrides, serverData) => {
     return filteredData.slice(queryParams._start, queryParams._end);
 };
 
+/**
+ * React-Admin data provider
+ * I've added utility functions to process the data so that it'll work with RA components.
+ * All the methods above are mine */
 export default function (apiUrl, httpClient = fetchUtils.fetchJson, overrides) {
     return ({
         getList: (resource, params) => {
@@ -123,7 +127,7 @@ export default function (apiUrl, httpClient = fetchUtils.fetchJson, overrides) {
             return httpClient(url).then(({headers, json}) => {
                 let data = overrides.key ? json[overrides.key] : json;
 
-                let sortedAndFilteredData = processDataForReactAdminCompatibility(overrides, data);
+                let sortedAndFilteredData = processDataForAdmin(overrides, data);
 
                 let count;
                 if (Object.keys(queryParams.filters).length) {
@@ -138,7 +142,6 @@ export default function (apiUrl, httpClient = fetchUtils.fetchJson, overrides) {
                             .pop(),
                         10)
                     : count || data.length;
-
 
                 return {
                     data: sortedAndFilteredData,
@@ -192,7 +195,7 @@ export default function (apiUrl, httpClient = fetchUtils.fetchJson, overrides) {
                 // sortDataByField(paginatedData);
                 // let sortedAndFilteredData = applyAllFilters(paginatedData, Object.entries(queryParams.filters));
 
-                let sortedAndFilteredData = processDataForReactAdminCompatibility(overrides, data);
+                let sortedAndFilteredData = processDataForAdmin(overrides, data);
 
                 return {
                     data: sortedAndFilteredData,
