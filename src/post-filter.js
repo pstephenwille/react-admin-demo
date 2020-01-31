@@ -1,12 +1,30 @@
 import React from 'react';
-import {Filter, TextInput} from 'react-admin';
+import {
+    Filter,
+    TextInput,
+    AutocompleteInput,
+    DateInput,
+    ReferenceInput,
+    SearchInput,
+    SelectInput,
+} from 'react-admin';
+import {demoOverrides, tccOverrides} from './overrides_const';
 
-export default (props) => (
-    <Filter {...props}>
-        {/*<TextInput label="Search" source="name" alwaysOn/>*/}
-        <TextInput label="Email" source="Email" defaultValue="Shanna"/>
-        <TextInput label="Company.name" source="Company.name" />
-        <TextInput label="Website" source="Website"  />
-    </Filter>
-);
+let filters = [];
+let names = [];
+export default (props) => {
 
+    return (
+        <Filter {...props}>
+            <ReferenceInput
+                source={'Email'}
+                reference={'users'}
+                filterToQuery={searchTerm => ({'q?email': searchTerm})}>
+                <AutocompleteInput
+                    optionText={choice => 'Email'}
+                />
+            </ReferenceInput>
+        </Filter>
+    )
+}
+;

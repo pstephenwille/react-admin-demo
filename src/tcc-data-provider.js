@@ -35,10 +35,11 @@ import {fetchUtils} from 'ra-core';
  */
 let queryParams = {};
 const sortDataByField = (data) => {
+    if (!data) return;
     if (!queryParams._sort) return;
 
     const sortByNumbers = () => {
-        return data.sort((a, b) => {
+        data.sort((a, b) => {
             const objA = a[queryParams._sort], objB = b[queryParams._sort];
 
             if (queryParams._order === 'ASC') {
@@ -66,7 +67,6 @@ const sortDataByField = (data) => {
             }
         });
     };
-
     queryParams._sort === 'id' ? sortByNumbers() : sortByStrings();
 };
 
@@ -77,23 +77,43 @@ const getNestedProperty = (item, keyString) => {
 
     return getNestedProperty(item[keysArray.shift()], keysArray.join('.'));
 };
+
 const applyAllFilters = (list, filters) => {
+    if (!list) return [];
     if (!filters.length) return list;
 
+    let filteredList;
     let [key, val] = filters.shift();
+    console.log('...key-val-list', key, val, list);
 
-    let filteredList = list.filter(item => {
-        let pattern = new RegExp(val.toLocaleString(), 'ig');
-        let toMatch = getNestedProperty(item, key.toLocaleLowerCase());
+    if (/q\?/.test(key)) {
+        key = key.replace('q?', '');
 
-        return pattern.test(toMatch);
-    });
+        filteredList = list.filter(item => {
+            let pattern = new RegExp(val.toLocaleString(), 'ig');
+            let toMatch = getNestedProperty(item, key.toLocaleLowerCase());
+
+            return pattern.test(toMatch);
+        });
+    } else {
+        let toMatch = list.filter(item => item.id === val);
+        // if (!(toMatch && toMatch[0] && toMatch[0][key])) { return }
+
+        if (toMatch && toMatch[0] && toMatch[0][key]) {
+            filteredList = list.filter(item => {
+                // if(item[key] === toMatch[0][key]){ debugger}
+                console.log('...match ', key, item[key] === toMatch[0][key]);
+                return item[key] === toMatch[0][key];
+            });
+        } else {
+            filteredList = [];
+        }
+    }
 
     return applyAllFilters(filteredList, filters);
 };
 
-const processDataForReactAdminCompatibility = (overrides, serverData) => {
-
+const processDataForAdmin = (overrides, serverData) => {
     let filteredData = applyAllFilters(serverData, Object.entries(queryParams.filters));
 
     sortDataByField(filteredData);
@@ -101,6 +121,10 @@ const processDataForReactAdminCompatibility = (overrides, serverData) => {
     return filteredData.slice(queryParams._start, queryParams._end);
 };
 
+/**
+ * React-Admin data provider
+ * I've added utility functions to process the data so that it'll work with RA components.
+ * All the methods above are mine */
 export default function (apiUrl, httpClient = fetchUtils.fetchJson, overrides) {
     return ({
         getList: (resource, params) => {
@@ -123,7 +147,7 @@ export default function (apiUrl, httpClient = fetchUtils.fetchJson, overrides) {
             return httpClient(url).then(({headers, json}) => {
                 let data = overrides.key ? json[overrides.key] : json;
 
-                let sortedAndFilteredData = processDataForReactAdminCompatibility(overrides, data);
+                let sortedAndFilteredData = processDataForAdmin(overrides, data);
 
                 let count;
                 if (Object.keys(queryParams.filters).length) {
@@ -139,7 +163,6 @@ export default function (apiUrl, httpClient = fetchUtils.fetchJson, overrides) {
                         10)
                     : count || data.length;
 
-
                 return {
                     data: sortedAndFilteredData,
                     total: recordCount,
@@ -147,18 +170,35 @@ export default function (apiUrl, httpClient = fetchUtils.fetchJson, overrides) {
             });
         },
 
-        getOne: (resource, params) =>
-            httpClient(`${apiUrl}/${resource}/${params.id}`).then(({json}) => ({
+        getOne: (resource, params) => {
+            console.log('...get one ', params);
+            return httpClient(`${apiUrl}/${resource}/${params.id}`).then(({json}) => ({
                 data: json[overrides.key],
-            })),
+            }))
+        },
 
         getMany: (resource, params) => {
-            console.log('...getmany');
             const query = {
-                id: params.ids,
+                filter: {id: params.ids},
             };
-            const url = `${apiUrl}/${resource}?${stringify(query)}`;
-            return httpClient(url).then(({json}) => ({data: json[overrides.key]}));
+            console.log('..getmany ', query, params);
+            // const url = `${apiUrl}/${resource}?${stringify(query)}`;
+            var url = apiUrl + "/" + resource + "?" + stringify(JSON.stringify(query));
+            return httpClient(url).then(({json}) => {
+                let data = overrides.key ? json[overrides.key] : json;
+
+                let filteredByIdData = data.filter(item => {
+                    if (query.filter.id.includes(item.id)) {
+                        return item;
+                    }
+                });
+                // queryParams.filters['q?team'] = filteredByIdData[0].team;
+
+                // let newdata = processDataForAdmin(overrides, filteredByIdData);
+
+
+                return ({data: data});
+            });
         },
 
         getManyReference: (resource, params) => {
@@ -192,7 +232,7 @@ export default function (apiUrl, httpClient = fetchUtils.fetchJson, overrides) {
                 // sortDataByField(paginatedData);
                 // let sortedAndFilteredData = applyAllFilters(paginatedData, Object.entries(queryParams.filters));
 
-                let sortedAndFilteredData = processDataForReactAdminCompatibility(overrides, data);
+                let sortedAndFilteredData = processDataForAdmin(overrides, data);
 
                 return {
                     data: sortedAndFilteredData,

@@ -1,18 +1,12 @@
 import React from 'react';
 import {List, Datagrid, TextField} from 'react-admin';
 import ServicesFilter from './services-filter';
+import {tccOverrides} from './overrides_const';
 
 export const ServiceList = props => (
-    <List {...props} filters={<ServicesFilter />}>
-        <Datagrid rowClick="edit">
-            <TextField source="id"/>
-            <TextField source="name"/>
-            {/*<TextField source="username" />*/}
-            <TextField source="status"/>
-            {/*<TextField source="address.street" />*/}
-            <TextField source="description"/>
-            {/*<TextField source="website" />*/}
-            <TextField source="team"/>
+    <List {...props} filters={<ServicesFilter/>}>
+        <Datagrid optimized rowClick="edit">
+            {tccOverrides.columnNames.map((name, id) => (<TextField key={id} source={name}/>))}
         </Datagrid>
     </List>
 );
