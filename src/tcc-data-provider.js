@@ -34,9 +34,9 @@ import {fetchUtils} from 'ra-core';
  * export default App;
  */
 let queryParams = {};
+
 const sortDataByField = (data) => {
-    if (!data) return;
-    if (!queryParams._sort) return;
+    if (!data || !queryParams._sort) return;
 
     const sortByNumbers = () => {
         data.sort((a, b) => {
@@ -49,6 +49,7 @@ const sortDataByField = (data) => {
             }
         });
     };
+
     const sortByStrings = () => {
         data.sort((a, b) => {
             if (a[queryParams._sort] == null || b[queryParams._sort] == null) return 0;
@@ -57,25 +58,26 @@ const sortDataByField = (data) => {
                 test2 = b[queryParams._sort].toLowerCase();
 
             if (queryParams._order === 'ASC') {
-                if (test1 < test2) return -1;
-                if (test1 > test2) return 1;
-                if (test1 === test2) return 0;
+                return (test1 > test2) - (test1 < test2);
             } else {
-                if (test1 > test2) return -1;
-                if (test1 < test2) return 1;
-                if (test1 === test2) return 0;
+                return (test1 < test2) - (test1 > test2);
             }
         });
     };
+
     queryParams._sort === 'id' ? sortByNumbers() : sortByStrings();
 };
 
-const getNestedProperty = (item, keyString) => {
+const resolveNestedProperty = (item, keyString) => {
     if (!keyString) return item;
 
     const keysArray = keyString.split('.');
 
-    return getNestedProperty(item[keysArray.shift()], keysArray.join('.'));
+    return resolveNestedProperty(item[keysArray.shift()], keysArray.join('.'));
+};
+
+const escapeSpecialCharsForRegExp = (string) => {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
 const applyAllFilters = (list, filters) => {
@@ -84,31 +86,16 @@ const applyAllFilters = (list, filters) => {
 
     let filteredList;
     let [key, val] = filters.shift();
-    console.log('...key-val-list', key, val, list);
 
-    if (/q\?/.test(key)) {
-        key = key.replace('q?', '');
+    if (val === '') return list;
 
-        filteredList = list.filter(item => {
-            let pattern = new RegExp(val.toLocaleString(), 'ig');
-            let toMatch = getNestedProperty(item, key.toLocaleLowerCase());
+    let regexSafeString = escapeSpecialCharsForRegExp(val);
+    let pattern = new RegExp(regexSafeString, 'i');
 
-            return pattern.test(toMatch);
-        });
-    } else {
-        let toMatch = list.filter(item => item.id === val);
-        // if (!(toMatch && toMatch[0] && toMatch[0][key])) { return }
-
-        if (toMatch && toMatch[0] && toMatch[0][key]) {
-            filteredList = list.filter(item => {
-                // if(item[key] === toMatch[0][key]){ debugger}
-                console.log('...match ', key, item[key] === toMatch[0][key]);
-                return item[key] === toMatch[0][key];
-            });
-        } else {
-            filteredList = [];
-        }
-    }
+    filteredList = list.filter(item => {
+        let toMatch = resolveNestedProperty(item, key.toLocaleLowerCase());
+        return toMatch.match(pattern);
+    });
 
     return applyAllFilters(filteredList, filters);
 };
@@ -118,7 +105,55 @@ const processDataForAdmin = (overrides, serverData) => {
 
     sortDataByField(filteredData);
 
-    return filteredData.slice(queryParams._start, queryParams._end);
+    return filteredData;
+};
+
+const normalizeFilterKeys = (queryParams) => {
+    let isFilterQuery = false;
+
+    Object.entries(queryParams.filters).forEach(([key, val]) => {
+        let filterQueryKey = /q\?_/;
+
+        if (filterQueryKey.test(key)) {
+            let newKey = key.replace(filterQueryKey, '');
+            queryParams.filters[newKey] = val;
+            delete queryParams.filters[key];
+            isFilterQuery = true;
+        }
+    });
+
+    return isFilterQuery;
+};
+
+const normalizeFilterValues = (queryParams, data) => {
+    Object.entries(queryParams.filters).forEach(([key, val]) => {
+        if (Number.isInteger(val)) {
+            let toMatch = data.find(item => {
+                if (item.id === val) {
+                    return item[key]
+                }
+            });
+
+            queryParams.filters[key] = toMatch[key];
+        }
+    });
+};
+
+const makeListOfUniqueItems = (overrides, filters, items, uniques) => {
+    if (!filters.length) return uniques;
+
+    let [key, val] = filters.shift();
+
+    if (!overrides.autoCompleteFilters.includes(key)) {return uniques;}
+
+    items.forEach(filtered => {
+        let duplicate = uniques.some(unique => unique[key] === filtered[key]);
+        if (!duplicate) {
+            uniques.push(filtered);
+        }
+    });
+
+    return makeListOfUniqueItems(overrides, filters, items, uniques);
 };
 
 /**
@@ -128,8 +163,6 @@ const processDataForAdmin = (overrides, serverData) => {
 export default function (apiUrl, httpClient = fetchUtils.fetchJson, overrides) {
     return ({
         getList: (resource, params) => {
-            console.log('...get list ', params);
-
             const {page, perPage} = params.pagination;
             const {field, order} = params.sort;
             const query = {
@@ -146,13 +179,15 @@ export default function (apiUrl, httpClient = fetchUtils.fetchJson, overrides) {
 
             return httpClient(url).then(({headers, json}) => {
                 let data = overrides.key ? json[overrides.key] : json;
+                let isUserFilteringForATerm = normalizeFilterKeys(queryParams);
+
+                normalizeFilterValues(queryParams, data);
 
                 let sortedAndFilteredData = processDataForAdmin(overrides, data);
 
-                let count;
-                if (Object.keys(queryParams.filters).length) {
-                    count = sortedAndFilteredData.length;
-                }
+                let actualRecordCount = sortedAndFilteredData.length
+                    ? sortedAndFilteredData.length
+                    : data.length;
 
                 let recordCount = overrides.paginationHeader
                     ? parseInt(
@@ -161,17 +196,26 @@ export default function (apiUrl, httpClient = fetchUtils.fetchJson, overrides) {
                             .split('/')
                             .pop(),
                         10)
-                    : count || data.length;
+                    : actualRecordCount;
+
+                let uniques = (isUserFilteringForATerm)
+                    ? makeListOfUniqueItems(
+                        overrides,
+                        Object.entries(queryParams.filters),
+                        data,
+                        [])
+                    : undefined;
+
+                let results = uniques || sortedAndFilteredData;
 
                 return {
-                    data: sortedAndFilteredData,
+                    data: results.slice(queryParams._start, queryParams._end),
                     total: recordCount,
                 };
             });
         },
 
         getOne: (resource, params) => {
-            console.log('...get one ', params);
             return httpClient(`${apiUrl}/${resource}/${params.id}`).then(({json}) => ({
                 data: json[overrides.key],
             }))
@@ -179,30 +223,17 @@ export default function (apiUrl, httpClient = fetchUtils.fetchJson, overrides) {
 
         getMany: (resource, params) => {
             const query = {
-                filter: {id: params.ids},
+                id: params.ids,
             };
-            console.log('..getmany ', query, params);
-            // const url = `${apiUrl}/${resource}?${stringify(query)}`;
-            var url = apiUrl + "/" + resource + "?" + stringify(JSON.stringify(query));
+            const url = `${apiUrl}/${resource}?${stringify(query)}`;
             return httpClient(url).then(({json}) => {
                 let data = overrides.key ? json[overrides.key] : json;
-
-                let filteredByIdData = data.filter(item => {
-                    if (query.filter.id.includes(item.id)) {
-                        return item;
-                    }
-                });
-                // queryParams.filters['q?team'] = filteredByIdData[0].team;
-
-                // let newdata = processDataForAdmin(overrides, filteredByIdData);
-
-
-                return ({data: data});
+                return {data: data};
             });
+
         },
 
         getManyReference: (resource, params) => {
-            console.log('..getmany-reference');
             const {page, perPage} = params.pagination;
             const {field, order} = params.sort;
             const query = {
@@ -217,9 +248,6 @@ export default function (apiUrl, httpClient = fetchUtils.fetchJson, overrides) {
 
             return httpClient(url).then(({headers, json}) => {
                 let data = overrides.key ? json[overrides.key] : json;
-
-                // let paginatedData = data.slice(queryParams._start, queryParams._end);
-
                 let recordCount = overrides.paginationHeader
                     ? parseInt(
                         headers
@@ -228,9 +256,6 @@ export default function (apiUrl, httpClient = fetchUtils.fetchJson, overrides) {
                             .pop(),
                         10)
                     : data.length;
-
-                // sortDataByField(paginatedData);
-                // let sortedAndFilteredData = applyAllFilters(paginatedData, Object.entries(queryParams.filters));
 
                 let sortedAndFilteredData = processDataForAdmin(overrides, data);
 

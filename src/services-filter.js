@@ -16,7 +16,7 @@ export default (props) => {
             key={name}
             source={name}
             reference="services"
-            filterToQuery={searchTerm => ({[`q?${name}`]: searchTerm})}>
+            filterToQuery={searchTerm => ({[`q?_${name}`]: searchTerm})}>
             <AutocompleteInput
                 optionText={choice => `${choice[name]}`}
             />
@@ -27,19 +27,6 @@ export default (props) => {
     return (
         <Filter {...props}>
             {filters}
-
-            <SelectInput
-                source="q?status"
-                label={'Status'}
-                choices={[
-                    {id: 'production', name: 'production'},
-                    {id: 'retired', name: 'retired'},
-                    {id: 'deprecated', name: 'deprecated'},
-                    {id: 'pending', name: 'pending'},
-                    {id: 'testing', name: 'testing'},
-                ]}
-            />
-
         </Filter>
     )
 };

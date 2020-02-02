@@ -6,7 +6,11 @@ import {tccOverrides} from './overrides_const';
 export const ServiceList = props => (
     <List {...props} filters={<ServicesFilter/>}>
         <Datagrid optimized rowClick="edit">
-            {tccOverrides.columnNames.map((name, id) => (<TextField key={id} source={name}/>))}
+            {
+                tccOverrides.columnNames.map(
+                    (name, id) =>
+                        (<TextField key={id} source={name}/>))
+            }
         </Datagrid>
     </List>
 );
