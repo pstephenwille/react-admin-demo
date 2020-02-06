@@ -1,0 +1,28 @@
+$sizingSteps: (xxs:0.25rem, xs:0.5rem, s:0.75rem, m:1rem, l:1.25rem, xl:1.5rem, xxl:2rem, xxxl:3rem);
+
+@function get-size($size) {
+  @if map-has-key($sizingSteps, $size) {
+    @return map-get($sizingSteps, $size);
+  }
+
+  @warn "Size (#{$size}) not found!";
+  @return "key not found"
+}
+
+@mixin font($size: false, $weight: false,  $style: false, $color: false) {
+  @if $size { font-size: get-size($size); }
+  @if $weight { font-weight: $weight; }
+  @if $style { font-style: $style; }
+  @if $color { color: $color; }
+
+}
+
+
+$--title-xxs: get-size(xxs);
+$--title-xs: get-size(xs);
+$--title-s: get-size(s);
+$--title-m: get-size(m);
+$--title-l: get-size(l);
+$--title-xl: get-size(xl);
+$--title-xxl: get-size(xxl);
+
