@@ -183,7 +183,6 @@ const makeListOfUniqueItems = (overrides, filters, items, uniques) => {
 export default function (apiUrl, httpClient = fetchUtils.fetchJson, overrides) {
     return ({
         getList: (resource, params) => {
-            debugger
             const {page, perPage} = params.pagination;
             const {field, order} = params.sort;
             const query = {

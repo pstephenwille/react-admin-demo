@@ -5,8 +5,8 @@ import {List, Datagrid, TextField} from 'react-admin';
 
 configure({adapter: new Adapter()});
 
-import {ServicesList} from '../ServicesList';
-import {TccOverrides} from '../../constants/overrides_const';
+import {ServiceList} from '../mm-services';
+import {tccOverrides} from '../../constants/overrides_const';
 
 jest.mock('react-admin', () => ({
     List: ({children}) => <div/>,
@@ -15,17 +15,17 @@ jest.mock('react-admin', () => ({
 }));
 
 
-describe('<ServicesList  ', () => {
+describe('<ServiceList  ', () => {
     it('Contains only the column names from the "overrides" ', () => {
-        const service = shallow(<ServicesList props={{}}/>);
+        const service = shallow(<ServiceList props={{}}/>);
         const textField = service.find(TextField);
 
-        expect(textField.length).toEqual(TccOverrides.columnNames.length);
+        expect(textField.length).toEqual(tccOverrides.columnNames.length);
 
         for(let col=0; col<textField.length; col++){
             let field = textField.get(col).props.source;
 
-            expect(TccOverrides.columnNames.includes(field)).toBe(true);
+            expect(tccOverrides.columnNames.includes(field)).toBe(true);
         }
     });
 });

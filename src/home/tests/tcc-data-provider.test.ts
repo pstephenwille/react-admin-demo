@@ -1,5 +1,5 @@
-import {_helpers} from '../../common/tcc-data-provider';
-import {TccOverrides} from "../../constants/overrides_const";
+import {_helpers} from '../tcc-data-provider';
+import {tccOverrides} from "../../constants/overrides_const";
 
 describe('TCC data provider', () => {
     let stubbedQueryParams;
@@ -195,7 +195,7 @@ describe('TCC data provider', () => {
             filters: {id: [12]}
         };
         const expected = [stubbedData[3]];
-        const actual = _helpers.processDataForAdmin(TccOverrides, stubbedData, stubbedQueryParams);
+        const actual = _helpers.processDataForAdmin(tccOverrides, stubbedData, stubbedQueryParams);
 
         expect(actual).toEqual(expected);
     });
@@ -234,7 +234,7 @@ describe('TCC data provider', () => {
     it('makeListOfUniqueItems() immediately returns if there are no FILTERS', () => {
         const filters = [];
         const expected = [];
-        const actual = _helpers.makeListOfUniqueItems(TccOverrides, filters, stubbedData, []);
+        const actual = _helpers.makeListOfUniqueItems(tccOverrides, filters, stubbedData, []);
 
         expect(actual).toEqual(expected);
     });
@@ -242,14 +242,14 @@ describe('TCC data provider', () => {
     it('makeListOfUniqueItems() immediately returns if FILTER.VAL is null', () => {
         const filters = [["team", ""]];
         const expected = undefined;
-        const actual = _helpers.makeListOfUniqueItems(TccOverrides, filters, stubbedData, []);
+        const actual = _helpers.makeListOfUniqueItems(tccOverrides, filters, stubbedData, []);
 
         expect(actual).toEqual(expected);
     });
 
     it('makeListOfUniqueItems() returns LIST of single instances that match the FILTER', () => {
         const filters = [["team", "data-soft-eng"]];
-        const actual = _helpers.makeListOfUniqueItems(TccOverrides, filters, stubbedData, []);
+        const actual = _helpers.makeListOfUniqueItems(tccOverrides, filters, stubbedData, []);
 
         expect(stubbedData[1].team).toEqual('data-soft-eng');
         expect(stubbedData[2].team).toEqual('data-soft-eng');
