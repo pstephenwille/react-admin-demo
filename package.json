@@ -14,7 +14,6 @@
     "enzyme": "^3.11.0",
     "enzyme-adapter-react-16": "^1.15.2",
     "jest-fetch-mock": "^3.0.1",
-    "json-server": "^0.15.1",
     "node-sass": "^4.13.1",
     "prop-types": "^15.7.2",
     "ra-data-json-server": "^3.1.2",
