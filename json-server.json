@@ -1,4 +1,4 @@
 {
-  "host": "metadata.tcc.li",
-  "watch": "./db-stubbed-tcc-data.json"
+  "host": "http://metadata.tcc.li",
+  "port": 3001
 }
