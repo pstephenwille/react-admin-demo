@@ -7,10 +7,12 @@ import {TccOverrides, TccPaths} from '../constants/overrides_const';
 const dataProvider = tccDataProvider(TccPaths.base + TccPaths.resources, fetchUtils.fetch, TccOverrides);
 
 
-export default () => (
-    <Admin dataProvider={dataProvider}>
-        <Resource name={'services'} list={ServicesList}/>
-    </Admin>
-);
+export default () => {
+    return (
+        <Admin dataProvider={dataProvider}>
+            <Resource name={'services'} list={ServicesList}/>
+        </Admin>
+    )
+};
 
 

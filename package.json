@@ -29,7 +29,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "cy": "yarn run cypress",
+    "jsonsvr": "json-server -w ./json-server/data/tcc-data.json -c ./json-server/json-server.json"
   },
   "eslintConfig": {
     "extends": "react-app"

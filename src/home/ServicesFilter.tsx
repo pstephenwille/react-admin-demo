@@ -1,7 +1,6 @@
 import React from 'react';
 import {
     Filter,
-    SearchInput,
     SelectInput,
     ReferenceInput,
     AutocompleteInput,
@@ -18,7 +17,7 @@ export default (props) => {
             reference="services"
             filterToQuery={searchTerm => ({[`q?_${name}`]: searchTerm})}>
             <AutocompleteInput
-                optionText={choice => `${choice[name]}`}
+                optionText={choice => choice? `${choice[name]}`: ''}
                 translateChoice={false}
             />
         </ReferenceInput>

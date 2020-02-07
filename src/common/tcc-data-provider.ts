@@ -142,11 +142,9 @@ const normalizeFilterKeys = (queryParams) => {
 
 const normalizeFilterValues = (data, queryParams) => {
     Object.entries(queryParams.filters).forEach(([key, val]) => {
-        if (Number.isInteger(<number>val)) {
+        if (Number.isInteger(val as number)) {
             let toMatch = data.find(item => {
-                if (item.id === val) {
-                    return item[key]
-                }
+                return  (item.id === val)? item[key]: false;
             });
             queryParams.filters[key] = toMatch[key];
         }
@@ -240,7 +238,6 @@ export default function (apiUrl, httpClient = fetchUtils.fetchJson, overrides) {
         },
 
         getOne: (resource, params) => {
-            console.log('..get one');
             return httpClient(`${apiUrl}/${resource}/${params.id}`).then(({json}) => {
                 let data = overrides.key ? json[overrides.key] : json;
                 return {data: data};
@@ -248,25 +245,21 @@ export default function (apiUrl, httpClient = fetchUtils.fetchJson, overrides) {
         },
 
         getMany: (resource, params) => {
-            console.log('..get many ');
             const query = {
                 id: params.ids,
             };
             let filters = {id: query.id};
             queryParams.filters = filters;
-            console.log('..many qparams ', queryParams);
             const url = `${apiUrl}/${resource}?${stringify(query)}`;
             return httpClient(url).then(({json}) => {
                 let data = overrides.key ? json[overrides.key] : json;
                 const sortedAndFilteredData = processDataForAdmin(overrides, data, queryParams);
 
-                console.log('..many sorted ', sortedAndFilteredData);
-                return {data: data};
+                return {data: sortedAndFilteredData};
             });
         },
 
         getManyReference: (resource, params) => {
-            console.log('..get reference');
             const {page, perPage} = params.pagination;
             const {field, order} = params.sort;
             const query = {
@@ -281,6 +274,7 @@ export default function (apiUrl, httpClient = fetchUtils.fetchJson, overrides) {
 
             return httpClient(url).then(({headers, json}) => {
                 let data = overrides.key ? json[overrides.key] : json;
+                let sortedAndFilteredData = processDataForAdmin(overrides, data, queryParams);
                 let recordCount = overrides.paginationHeader
                     ? parseInt(
                         headers
@@ -288,13 +282,12 @@ export default function (apiUrl, httpClient = fetchUtils.fetchJson, overrides) {
                             .split('/')
                             .pop(),
                         10)
-                    : data.length;
+                    : sortedAndFilteredData.length;
 
-                let sortedAndFilteredData = processDataForAdmin(overrides, data, queryParams);
 
                 return {
                     data: sortedAndFilteredData,
-                    total: data.length,
+                    total: recordCount,
                 };
             });
         },

@@ -6,7 +6,8 @@ export const TccOverrides = {
 
 
 export enum TccPaths {
-    base = 'https://metadata.tcc.li/v2',
+    // @ts-ignore
+    base = `${process.env.REACT_APP_TCC_BASE_URL}`,
     resources = '/resources'
 
 }
