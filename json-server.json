@@ -1,0 +1,4 @@
+{
+  "host": "metadata.tcc.li",
+  "watch": "./db-stubbed-tcc-data.json"
+}
