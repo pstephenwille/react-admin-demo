@@ -1,39 +1,8 @@
 import {stringify} from 'query-string';
 import {fetchUtils} from 'ra-core';
 
-/**
- * Maps react-admin queries to a json-server powered REST API
- *
- * @see https://github.com/typicode/json-server
- *
- * @example
- *
- * getList          => GET http://my.api.url/posts?_sort=title&_order=ASC&_start=0&_end=24
- * getOne           => GET http://my.api.url/posts/123
- * getManyReference => GET http://my.api.url/posts?author_id=345
- * getMany          => GET http://my.api.url/posts/123, GET http://my.api.url/posts/456, GET http://my.api.url/posts/789
- * create           => POST http://my.api.url/posts/123
- * update           => PUT http://my.api.url/posts/123
- * updateMany       => PUT http://my.api.url/posts/123, PUT http://my.api.url/posts/456, PUT http://my.api.url/posts/789
- * delete           => DELETE http://my.api.url/posts/123
- *
- * @example
- *
- * import React from 'react';
- * import { Admin, Resource } from 'react-admin';
- * import jsonServerProvider from 'ra-data-json-server';
- *
- * import { PostList } from './posts';
- *
- * const Home = () => (
- *     <Admin dataProvider={jsonServerProvider('http://jsonplaceholder.typicode.com')}>
- *         <Resource name="posts" list={PostList} />
- *     </Admin>
- * );
- *
- * export default Home;
- */
-let queryParams = {
+
+type queryParams = {
     _sort: undefined,
     _order: undefined,
     filters: undefined,
@@ -58,9 +27,7 @@ const sortDataByField = (data, queryParams) => {
 
     const sortByStrings = () => {
         data.sort((a, b) => {
-            // @ts-ignore
             if (a[queryParams._sort] == null || b[queryParams._sort] == null) return 0;
-            // @ts-ignore
             const test1 = a[queryParams._sort].toLowerCase(),
                 // @ts-ignore
                 test2 = b[queryParams._sort].toLowerCase();
@@ -74,7 +41,6 @@ const sortDataByField = (data, queryParams) => {
         });
     };
 
-    // @ts-ignore
     queryParams._sort === 'id' ? sortByNumbers() : sortByStrings();
 };
 
@@ -91,7 +57,7 @@ const escapeSpecialCharsForRegExp = (string) => {
 
 const makeKeyValuePair = (filter) => {
     const key = filter[0];
-    const _val = filter[1];//123, [123], 'me@work.com'
+    const _val = filter[1];
     const val = (typeof _val === 'object')
         ? _val[0].toString()
         : _val.toString();
@@ -144,7 +110,7 @@ const normalizeFilterValues = (data, queryParams) => {
     Object.entries(queryParams.filters).forEach(([key, val]) => {
         if (Number.isInteger(val as number)) {
             let toMatch = data.find(item => {
-                return  (item.id === val)? item[key]: false;
+                return (item.id === val) ? item[key] : false;
             });
             queryParams.filters[key] = toMatch[key];
         }
@@ -156,15 +122,15 @@ const makeListOfUniqueItems = (overrides, filters, items, uniques) => {
     let uniqueSet = {};
     const [key, val] = makeKeyValuePair(filters.shift());
 
-    if (!val) return;
-
     if (!overrides.autoCompleteFilters.includes(key)) return uniques;
 
     const pattern = new RegExp(val, 'ig');
 
     items.forEach(filtered => {
         if (!filtered[key]) return;
-        if (filtered[key].match(pattern)) {
+        if (!val) {
+            uniqueSet[filtered[key]] = filtered;
+        } else if (filtered[key].match(pattern)) {
             uniqueSet[filtered[key]] = filtered;
         }
     });
@@ -190,17 +156,14 @@ export default function (apiUrl, httpClient = fetchUtils.fetchJson, overrides) {
                 _start: (page - 1) * perPage,
                 _end: page * perPage,
             };
-            queryParams = {...query, filters: {...fetchUtils.flattenObject(params.filter)}};
-
+            let qParams = {...query, filters: {...fetchUtils.flattenObject(params.filter)}};
             const url = `${apiUrl}/${resource}?${stringify(query)}`;
+
             return httpClient(url).then(({headers, json}) => {
                 const data = overrides.key ? json[overrides.key] : json;
-                const isUserFilteringForATerm = normalizeFilterKeys(queryParams);
-
-                normalizeFilterValues(data, queryParams);
-
-                const sortedAndFilteredData = processDataForAdmin(overrides, data, queryParams);
-
+                const isUserFilteringForATerm = normalizeFilterKeys(qParams);
+                normalizeFilterValues(data, qParams);
+                const sortedAndFilteredData = processDataForAdmin(overrides, data, qParams);
                 const actualRecordCount = sortedAndFilteredData.length
                     ? sortedAndFilteredData.length
                     : data.length;
@@ -217,18 +180,18 @@ export default function (apiUrl, httpClient = fetchUtils.fetchJson, overrides) {
                 const uniques = (isUserFilteringForATerm)
                     ? makeListOfUniqueItems(
                         overrides,
-                        Object.entries(queryParams.filters),
+                        Object.entries(qParams.filters),
                         data,
                         [])
                     : undefined;
 
                 if (uniques) {
-                    sortDataByField(uniques, queryParams);
+                    sortDataByField(uniques, qParams);
                 }
 
                 const results = uniques
                     ? uniques
-                    : sortedAndFilteredData.slice(queryParams._start, queryParams._end);
+                    : sortedAndFilteredData.slice(qParams._start, qParams._end);
 
                 return {
                     data: results,
@@ -248,12 +211,11 @@ export default function (apiUrl, httpClient = fetchUtils.fetchJson, overrides) {
             const query = {
                 id: params.ids,
             };
-            let filters = {id: query.id};
-            queryParams.filters = filters;
+            let qParams = {filters: params.ids};
             const url = `${apiUrl}/${resource}?${stringify(query)}`;
             return httpClient(url).then(({json}) => {
                 let data = overrides.key ? json[overrides.key] : json;
-                const sortedAndFilteredData = processDataForAdmin(overrides, data, queryParams);
+                const sortedAndFilteredData = processDataForAdmin(overrides, data, qParams);
 
                 return {data: sortedAndFilteredData};
             });
@@ -270,11 +232,12 @@ export default function (apiUrl, httpClient = fetchUtils.fetchJson, overrides) {
                 _start: (page - 1) * perPage,
                 _end: page * perPage,
             };
+            let qParams = {...query, filters: {...fetchUtils.flattenObject(params.filter)}};
             const url = `${apiUrl}/${resource}?${stringify(query)}`;
 
             return httpClient(url).then(({headers, json}) => {
                 let data = overrides.key ? json[overrides.key] : json;
-                let sortedAndFilteredData = processDataForAdmin(overrides, data, queryParams);
+                let sortedAndFilteredData = processDataForAdmin(overrides, data, qParams);
                 let recordCount = overrides.paginationHeader
                     ? parseInt(
                         headers
@@ -283,7 +246,6 @@ export default function (apiUrl, httpClient = fetchUtils.fetchJson, overrides) {
                             .pop(),
                         10)
                     : sortedAndFilteredData.length;
-
 
                 return {
                     data: sortedAndFilteredData,

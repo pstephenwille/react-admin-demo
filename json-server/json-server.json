@@ -1,6 +1,5 @@
 {
   "port": 3001,
   "routes": "./json-server/routes.json",
-  "watch": "./json-server/data/db-stubbed-tcc-data.json",
   "auto-ignore": true
 }

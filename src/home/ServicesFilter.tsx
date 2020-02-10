@@ -29,14 +29,16 @@ export default (props) => {
             {filters}
 
             <SelectInput
+                id={'status'}
                 source="status"
                 label={'Status'}
                 translateChoice={false}
                 choices={[
+                    {id: 'deprecated', name: 'deprecated'},
+                    {id: 'internal', name: 'internal'},
+                    {id: 'pending', name: 'pending'},
                     {id: 'production', name: 'production'},
                     {id: 'retired', name: 'retired'},
-                    {id: 'deprecated', name: 'deprecated'},
-                    {id: 'pending', name: 'pending'},
                     {id: 'testing', name: 'testing'},
                 ]}
             />

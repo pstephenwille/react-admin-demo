@@ -1,13 +1,13 @@
-import {_helpers} from '../../common/tcc-data-provider';
-import {TccOverrides} from "../../constants/overrides_const";
+import {_helpers} from './tcc-data-provider';
+import {TccOverrides} from "../constants/overrides_const";
 
 describe('TCC data provider', () => {
     let stubbedQueryParams;
-    let referenceData = JSON.stringify(require('./stubbed-tcc-data.json').results);
+    let referenceData = JSON.stringify(require('../../json-server/data/tcc-data.json').stubbed);
     let stubbedData;
 
     beforeEach(() => {
-        stubbedData = JSON.parse(referenceData);
+        stubbedData = JSON.parse(referenceData).results;
         stubbedQueryParams = {
             _sort: undefined,
             _order: undefined,
@@ -33,7 +33,7 @@ describe('TCC data provider', () => {
 
         _helpers.sortDataByField(stubbedData, stubbedQueryParams);
         const firstTeam = stubbedData[0];
-        const lastTeam = stubbedData[4];
+        const lastTeam = stubbedData[7];
 
         expect(firstTeam.team).toEqual('data-soft-eng');
         expect(lastTeam.team).toEqual('sre');
@@ -50,7 +50,7 @@ describe('TCC data provider', () => {
 
         _helpers.sortDataByField(stubbedData, stubbedQueryParams);
         const firstTeam = stubbedData[0];
-        const lastTeam = stubbedData[4];
+        const lastTeam = stubbedData[7];
 
         expect(firstTeam.team).toEqual('sre');
         expect(lastTeam.team).toEqual('data-soft-eng');
@@ -67,10 +67,10 @@ describe('TCC data provider', () => {
 
         _helpers.sortDataByField(stubbedData, stubbedQueryParams);
         const firstTeam = stubbedData[0];
-        const lastTeam = stubbedData[4];
+        const lastTeam = stubbedData[7];
 
         expect(firstTeam.id).toEqual(5);
-        expect(lastTeam.id).toEqual(15);
+        expect(lastTeam.id).toEqual(118);
     });
 
     it('sortDataByField() will sort by ID, DESC', () => {
@@ -84,9 +84,9 @@ describe('TCC data provider', () => {
 
         _helpers.sortDataByField(stubbedData, stubbedQueryParams);
         const firstTeam = stubbedData[0];
-        const lastTeam = stubbedData[4];
+        const lastTeam = stubbedData[7];
 
-        expect(firstTeam.id).toEqual(15);
+        expect(firstTeam.id).toEqual(118);
         expect(lastTeam.id).toEqual(5);
     });
 
@@ -234,14 +234,6 @@ describe('TCC data provider', () => {
     it('makeListOfUniqueItems() immediately returns if there are no FILTERS', () => {
         const filters = [];
         const expected = [];
-        const actual = _helpers.makeListOfUniqueItems(TccOverrides, filters, stubbedData, []);
-
-        expect(actual).toEqual(expected);
-    });
-
-    it('makeListOfUniqueItems() immediately returns if FILTER.VAL is null', () => {
-        const filters = [["team", ""]];
-        const expected = undefined;
         const actual = _helpers.makeListOfUniqueItems(TccOverrides, filters, stubbedData, []);
 
         expect(actual).toEqual(expected);

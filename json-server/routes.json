@@ -1,4 +1,4 @@
 {
-  "/v2/resources/services": "/results",
-  "/v2/resources/services?*": "/results"
+  "/v2/resources/services": "/stubbed",
+  "/v2/resources/services?*": "/stubbed"
 }

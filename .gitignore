@@ -25,3 +25,4 @@ yarn-error.log*
 # Cypresss
 cypress/videos
 cypress/screenshots
+json-server/data/all-data.json

@@ -30,7 +30,8 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "cy": "yarn run cypress",
+    "cy:run": "yarn run cypress run -C ./cypress/cypress.json",
+    "cy:open": "yarn run cypress open -C ./cypress/cypress.json",
     "jsonsvr": "json-server -w ./json-server/data/tcc-data.json -c ./json-server/json-server.json"
   },
   "eslintConfig": {
